@@ -1,39 +1,65 @@
-<script>
-  async function getChatGPTResponse(inputText) {
-    const apiKey = "YOUR_API_KEY"; // ここに自分のAPIキーを入力
-    const url = "https://api.openai.com/v1/completions";
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "あなたは優しく愚痴を聞いてくれるAIです。"
-          },
-          {
-            role: "user",
-            content: inputText
-          },
-        ],
-      }),
-    });
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>聞き上手ちゃん</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #fff0f5; }
+    h1 { color: #d63384; }
+    .log { margin-top: 2em; }
+    .log div { margin: 1em 0; }
+    .user { color: #333; }
+    .ai { color: #d63384; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>聞き上手ちゃん</h1>
+  <p>怒りも愚痴もぜ〜んぶ聞いちゃう♪</p>
+  <div class="log" id="log"></div>
 
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
-  }
+  <script src="https://js.puter.com/v2/"></script>
+  <script>
+    const log = document.getElementById('log');
 
-  recognition.onresult = async (event) => {
-    const transcript = event.results[0][0].transcript;
-    log.innerHTML += `<div class="user">あなた：${transcript}</div>`;
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ja-JP';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-    // ChatGPTに愚痴を送って返答をもらう
-    const aiText = await getChatGPTResponse(transcript);
-    log.innerHTML += `<div class="ai">聞き上手ちゃん：${aiText}</div>`;
-    speak(aiText);
-  };
-</script>
+    recognition.onstart = () => {
+      console.log('音声認識が開始されました');
+    };
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript;
+      log.innerHTML += `<div class="user">あなた：${transcript}</div>`;
+
+      try {
+        const aiResponse = await puter.ai.chat(transcript);
+        log.innerHTML += `<div class="ai">聞き上手ちゃん：${aiResponse}</div>`;
+        speak(aiResponse);
+      } catch (error) {
+        console.error('AI応答エラー:', error);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('音声認識エラー:', event.error);
+    };
+
+    recognition.onend = () => {
+      recognition.start(); // 音声認識を再開
+    };
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.pitch = 1.3;
+      utterance.rate = 1;
+      speechSynthesis.speak(utterance);
+    }
+
+    recognition.start();
+  </script>
+</body>
+</html>
