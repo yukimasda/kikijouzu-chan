@@ -6,6 +6,7 @@
   <style>
     body { font-family: sans-serif; padding: 2em; background: #fff0f5; }
     h1 { color: #d63384; }
+    button { padding: 1em; font-size: 1.2em; margin: 0.5em; }
     .log { margin-top: 2em; }
     .log div { margin: 1em 0; }
     .user { color: #333; }
@@ -15,42 +16,58 @@
 <body>
   <h1>聞き上手ちゃん</h1>
   <p>怒りも愚痴もぜ〜んぶ聞いちゃう♪</p>
+  <button id="start">会話開始</button>
+  <button id="stop" disabled>会話停止</button>
   <div class="log" id="log"></div>
 
   <script src="https://js.puter.com/v2/"></script>
   <script>
+    const startButton = document.getElementById('start');
+    const stopButton = document.getElementById('stop');
     const log = document.getElementById('log');
 
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'ja-JP';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    let recognition;
+    let isRecognizing = false;
 
-    recognition.onstart = () => {
-      console.log('音声認識が開始されました');
-    };
+    // 音声認識の初期化
+    function initializeRecognition() {
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript;
-      log.innerHTML += `<div class="user">あなた：${transcript}</div>`;
+      recognition.onstart = () => {
+        isRecognizing = true;
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        log.innerHTML += '<div class="ai">聞き上手ちゃん：お話を聞いていますね〜！</div>';
+      };
 
-      try {
-        const aiResponse = await puter.ai.chat(transcript);
-        log.innerHTML += `<div class="ai">聞き上手ちゃん：${aiResponse}</div>`;
-        speak(aiResponse);
-      } catch (error) {
-        console.error('AI応答エラー:', error);
-      }
-    };
+      recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        log.innerHTML += `<div class="user">あなた：${transcript}</div>`;
 
-    recognition.onerror = (event) => {
-      console.error('音声認識エラー:', event.error);
-    };
+        try {
+          const aiResponse = await puter.ai.chat(transcript);
+          log.innerHTML += `<div class="ai">聞き上手ちゃん：${aiResponse}</div>`;
+          speak(aiResponse);
+        } catch (error) {
+          console.error('AI応答エラー:', error);
+        }
+      };
 
-    recognition.onend = () => {
-      recognition.start(); // 音声認識を再開
-    };
+      recognition.onerror = (event) => {
+        console.error('音声認識エラー:', event.error);
+      };
 
+      recognition.onend = () => {
+        if (isRecognizing) {
+          recognition.start(); // 音声認識を再開
+        }
+      };
+    }
+
+    // 音声合成
     function speak(text) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ja-JP';
@@ -59,7 +76,20 @@
       speechSynthesis.speak(utterance);
     }
 
-    recognition.start();
+    // 会話開始ボタンのクリックイベント
+    startButton.onclick = () => {
+      initializeRecognition();
+      recognition.start();
+    };
+
+    // 会話停止ボタンのクリックイベント
+    stopButton.onclick = () => {
+      recognition.stop();
+      isRecognizing = false;
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      log.innerHTML += '<div class="ai">聞き上手ちゃん：お話を終了しますね〜！</div>';
+    };
   </script>
 </body>
 </html>
