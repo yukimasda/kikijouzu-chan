@@ -29,7 +29,6 @@
     let recognition;
     let isRecognizing = false;
 
-    // 音声認識の初期化
     function initializeRecognition() {
       recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
       recognition.lang = 'ja-JP';
@@ -53,6 +52,7 @@
           speak(aiResponse);
         } catch (error) {
           console.error('AI応答エラー:', error);
+          log.innerHTML += `<div class="ai">聞き上手ちゃん：申し訳ありませんが、ただいま応答できません。</div>`;
         }
       };
 
@@ -62,12 +62,11 @@
 
       recognition.onend = () => {
         if (isRecognizing) {
-          recognition.start(); // 音声認識を再開
+          recognition.start();
         }
       };
     }
 
-    // 音声合成
     function speak(text) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ja-JP';
@@ -76,13 +75,11 @@
       speechSynthesis.speak(utterance);
     }
 
-    // 会話開始ボタンのクリックイベント
     startButton.onclick = () => {
       initializeRecognition();
       recognition.start();
     };
 
-    // 会話停止ボタンのクリックイベント
     stopButton.onclick = () => {
       recognition.stop();
       isRecognizing = false;
